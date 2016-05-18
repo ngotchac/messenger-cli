@@ -4,7 +4,8 @@ var vorpal = require('vorpal')(),
 var facebook = require('./src/facebook'),
     facebookVorpal = require('./src/facebook-vorpal');
 
-var Facebook = new facebook();
+var Facebook = new facebook(vorpal);
+var FacebookVorpal = new facebookVorpal(Facebook);
 
 vorpal
     .command('init', 'Initialize Facebook (login, etc...)')
@@ -42,10 +43,12 @@ vorpal
             return callback();
         }
 
+        // Bind the log and prompt functions
+        FacebookVorpal.prompt = this.prompt.bind(this);
+        FacebookVorpal.print = this.log.bind(this);
+
         // Get the search term (if any...)
         var search = args.search;
-
-        FacebookVorpal = new facebookVorpal(this.log.bind(this), this.prompt.bind(this), Facebook);
 
         // Prompt for a thread and print it!
         FacebookVorpal
@@ -57,9 +60,24 @@ vorpal
 
 
 vorpal
+    .command('send', 'Send a message')
+    .action(function(args, callback) {
+        // Bind the log and prompt functions
+        FacebookVorpal.prompt = this.prompt.bind(this);
+        FacebookVorpal.print = this.log.bind(this);
+
+        FacebookVorpal
+            .promptMessage()
+            .then(callback)
+            .catch(e => { setTimeout(() => { throw e; }); });
+    });
+
+vorpal
     .command('messages', 'Debug messages')
     .action(function(args, callback) {
-        FacebookVorpal = new facebookVorpal(this.log.bind(this), this.prompt.bind(this), Facebook);
+        // Bind the log and prompt functions
+        FacebookVorpal.prompt = this.prompt.bind(this);
+        FacebookVorpal.print = this.log.bind(this);
 
         FacebookVorpal
             .promptThread()

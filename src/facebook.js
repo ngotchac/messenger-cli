@@ -17,7 +17,7 @@ module.exports = class Facebook {
     /**
      * Class constructor, initializing empty threads and friends
      */
-    constructor() {
+    constructor(vorpal) {
         this.api = undefined;
         this.listener = undefined;
         this.currentUserID = undefined;
@@ -26,6 +26,7 @@ module.exports = class Facebook {
         this.friends = [];
 
         this.loggedin = false;
+        this.vorpal = vorpal;
     }
 
     /**
@@ -47,6 +48,8 @@ module.exports = class Facebook {
                 return this.loginFromState(state);
             })
             .then(() => {
+                this.api.setOptions({ selfListen: true });
+
                 this.currentUserID = this.api.getCurrentUserID();
                 // Load the threads and the friends list
                 return Promise.all([
@@ -62,6 +65,52 @@ module.exports = class Facebook {
             .then(() => this.linkThreadsToFriends());
     }
 
+    /**
+     * Add the given message to the thread from the threadID
+     *
+     * @param {Object} message    The message to add
+     * @param {String} threadID   The Thread ID
+     * @return {Promise}
+     */
+    addMessage(message, threadID) {
+        var messageID = message.messageID;
+
+        // Retrieve the Thread
+        var thread = this.threads.filter(t => t.threadID === threadID)[0];
+
+        // If it has already been loaded
+        if (thread && thread.data && thread.data.length > 0) {
+            let messageIn = thread.data.filter(m => m.messageID === messageID).length > 0;
+
+            // If the message is already there, skip
+            if (messageIn) return Promise.resolve();
+
+            // Add the message
+            thread.data.push(message);
+
+            // Sort by date
+            thread.data = thread.data.sort((a, b) => a.timestamp - b.timestamp);
+
+            // Update the snippet
+            thread.snippet = thread.data[thread.data.length - 1].body;
+
+            // Update the threads
+            this.threads = this.threads.map(t => {
+                if (t.threadID === threadID) t = thread;
+                return t;
+            });
+
+            return Promise.resolve(thread);
+        }
+
+        // If not, load the thread
+        return this.getThread(threadID);
+    } 
+
+    /**
+     * Listener of incoming messages, that will add them to
+     * the correct thread as they arrive.
+     */
     attachIncomingMessages() {
         // If already set, call it to stop listening
         if (this.listener) this.listener();
@@ -69,18 +118,26 @@ module.exports = class Facebook {
         this.listener = this.api.listen((err, message) => {
             if(err) return console.error(err);
 
-            var threadID = message.threadID,
-                thread;
+            this
+                .addMessage(message, message.threadID)
+                .then(thread => {
+                    var threadName = FacebookVorpal.getThreadName(thread),
+                        senderName = message.senderName,
+                        body = message.body;
 
-            // Add the message to the right thread
-            this.threads.forEach(t => {
-                if (t.threadID === threadID) {
-                    t.data.push(message);
-                    thread = t;
-                }
-            });
+                    if (body.length > 40) {
+                        body = body.slice(0, 37) + '...';
+                    }
 
-            console.log('New message!', message.body, FacebookVorpal.getThreadName(thread));
+                    this.vorpal.ui.redraw(
+                            '\n  '+
+                            chalk.bold.yellow('[NEW MESSAGE] ') +
+                            '(from: ' + chalk.bold(senderName) +
+                            ', @: ' + threadName +
+                            ') ' + body
+                        );
+                    this.vorpal.ui.redraw.done();
+                });
         });
     }
 
@@ -130,14 +187,19 @@ module.exports = class Facebook {
                 if (err) return reject(err);
 
                 // Save the data in the thread
-                self.threads.forEach(t => {
+                self.threads = self.threads.map(t => {
                     if (t.threadID === threadID) {
                         // Get the thread
                         thread = t;
 
                         // Store the data
                         t.data = data;
+
+                        // Update the snippet
+                        t.snippet = t.data[t.data.length - 1].body;
                     }
+
+                    return t;
                 });
 
                 resolve(thread);

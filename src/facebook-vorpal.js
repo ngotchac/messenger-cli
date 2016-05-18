@@ -12,9 +12,9 @@ module.exports = class FacebookVorpal {
      * @param  {Function} prompt     The prompt function
      * @param  {Facebook} Facebook   An instance of the Facebook class
      */
-    constructor(print, prompt, Facebook) {
-        this.print = print;
-        this.prompt = prompt;
+    constructor(Facebook) {
+        this.print = () => {};
+        this.prompt = () => {};
         this.Facebook = Facebook;
         this.currentThread = undefined;
     }
@@ -48,6 +48,48 @@ module.exports = class FacebookVorpal {
             });
     }
 
+    promptMessage() {
+        var thread = this.currentThread,
+            promise;
+
+        if (thread) {
+            var threadName = FacebookVorpal.getThreadName(thread);
+
+            promise = this
+                .prompt({
+                    message: `Send a message to ${chalk.blue(threadName)}:`,
+                    name: 'sendToCurrentThread',
+                    type: 'confirm',
+                    default: true
+                })
+                .then(answer => {
+                    if (answer.sendToCurrentThread) return thread;
+                    return this.promptThread();
+                });
+        } else {
+            promise = this.promptThread();
+        }
+        
+        return promise
+            .then(t => {
+                thread = t;
+                return this
+                    .prompt({
+                        message: chalk.bold('  Enter a message: '),
+                        name: 'message',
+                        type: 'input',
+                        validate: function(s) {
+                            if (s.length < 1) return 'Enter a valid message';
+                            return true;
+                        }
+                    })
+                    .then(a => a.message)
+            })
+            .then(m => {
+                return this.Facebook.sendMessage(m, thread.threadID);
+            });
+    }
+
     /**
      * Print the given message from a Facebook Thread
      *
@@ -69,10 +111,10 @@ module.exports = class FacebookVorpal {
         date = chalk.green(date);
         sender = chalk.bold(sender);
 
-        var senderID = /^fbid:(\d+)$/.exec(message.senderID)[1];
+        var senderID = /^(fbid:)?(\d+)$/.exec(message.senderID)[2];
 
         if (senderID === myID) {
-            sender = chalk.blue(sender);
+            sender = chalk.blue.bold('Me');
         }
 
         var status = `${sender} (${date})`;

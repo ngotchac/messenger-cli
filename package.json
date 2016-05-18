@@ -2,12 +2,11 @@
   "name": "messenger-cli",
   "version": "0.1.0",
   "description": "Facebook Messenger chat from the Terminal",
-  "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "./run.sh"
   },
   "bin": {
-    "messenger": "index.js"
+    "messenger": "run.sh"
   },
   "keywords": [
     "facebook",

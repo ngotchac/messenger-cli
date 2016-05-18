@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 var vorpal = require('vorpal')(),
     chalk = require('chalk');
 

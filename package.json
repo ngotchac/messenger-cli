@@ -1,16 +1,17 @@
 {
-  "name": "facebook-cli",
-  "version": "0.0.1",
-  "description": "Facebook chat from the CLI",
+  "name": "messenger-cli",
+  "version": "0.1.0",
+  "description": "Facebook Messenger chat from the Terminal",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
   "keywords": [
     "facebook",
     "messenger",
     "chat",
-    "cli"
+    "cli",
+    "terminal"
   ],
   "author": "Nicolas Gotchac <ngotchac@gmail.com>",
   "license": "MIT",

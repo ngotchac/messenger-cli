@@ -85,6 +85,10 @@ module.exports = class Facebook {
             // If the message is already there, skip
             if (messageIn) return Promise.resolve();
 
+            if (!message.senderName) {
+                message.senderName = this.getName(message.senderID);
+            }
+
             // Add the message
             thread.data.push(message);
 
@@ -92,7 +96,7 @@ module.exports = class Facebook {
             thread.data = thread.data.sort((a, b) => a.timestamp - b.timestamp);
 
             // Update the snippet
-            thread.snippet = thread.data[thread.data.length - 1].body;
+            thread.snippet = thread.data[thread.data.length - 1].body || '';
 
             // Update the threads
             this.threads = this.threads.map(t => {
@@ -206,7 +210,7 @@ module.exports = class Facebook {
                         t.data = data;
 
                         // Update the snippet
-                        t.snippet = t.data[t.data.length - 1].body;
+                        t.snippet = t.data[t.data.length - 1].body || '';
                     }
 
                     return t;

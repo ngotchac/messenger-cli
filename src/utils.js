@@ -81,7 +81,7 @@ module.exports = class Utils {
      * @return {Promise}
      */
     static fileToAscii_OLD(filepath) {
-        var imageToAscii = require('image-to-ascii');
+        // var imageToAscii = require('image-to-ascii');
 
         var cols = process.stdout.columns - 8,
             rows = process.stdout.rows - 10;
@@ -190,16 +190,21 @@ module.exports = class Utils {
         }
 
         return new Promise((resolve, reject) => {
-            // Convert the file to PNG
-            convert(filepath, filepathBase + '.png', { typeOut: 'png' }, err => {
-                if (err) return reject(err);
-
-                // Remove to first file
-                fs.unlink(filepath, err => {
+            // Convert the file to PNG (max width of 300px)
+            convert(
+                filepath,
+                filepathBase + '.png',
+                { typeOut: 'png', width: 300 },
+                err => {
                     if (err) return reject(err);
-                    resolve();
-                });
-            });
+
+                    // Remove to first file
+                    fs.unlink(filepath, err => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                }
+            );
         });
     }
 

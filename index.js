@@ -35,6 +35,7 @@ vorpal
 vorpal
     .command('threads [search]', 'Display threads/conversations')
     .alias('t')
+    .option('-N <number>', 'Number of messages to load')
     .action(function(args, callback) {
         // Verify that the user is logged in
         if (!Facebook.loggedin) {
@@ -49,11 +50,12 @@ vorpal
 
         // Get the search term (if any...)
         var search = args.search;
+        var N = args.options.N;
 
         // Prompt for a thread and print it!
         FacebookVorpal
             .promptThread(search)
-            .then(thread => FacebookVorpal.printThread(thread))
+            .then(thread => FacebookVorpal.printThread(thread, N))
             .then(callback)
             .catch(e => { setTimeout(() => { throw e; }); });
     });
@@ -102,7 +104,7 @@ vorpal
     });
 
 vorpal
-    .delimiter('fb $>')
+    .delimiter('m $>')
     .show();
 
 /**

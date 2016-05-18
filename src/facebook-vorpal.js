@@ -108,6 +108,10 @@ module.exports = class FacebookVorpal {
             body = message.body || '',
             attachments = message.attachments;
 
+        if (!date) {
+            date = (new Date(message.timestamp)).toLocaleTimeString();
+        }
+
         date = chalk.green(date);
         sender = chalk.bold(sender);
 
@@ -163,13 +167,12 @@ module.exports = class FacebookVorpal {
      * @param  {Object} thread   The thread to print
      * @return {Promise}
      */
-    printThread(thread) {
+    printThread(thread, N) {
         var pI;
 
         // If no messages, load them
-        if (!thread.data) {
-            pI = this.Facebook
-                .getThread(thread.threadID);
+        if (!thread.data || (N && thread.data.length < N)) {
+            pI = this.Facebook.getThread(thread.threadID, N);
         } else {
             // Create an empty Promise
             pI = Promise.resolve(thread);

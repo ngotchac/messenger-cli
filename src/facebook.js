@@ -105,7 +105,17 @@ module.exports = class Facebook {
 
         // If not, load the thread
         return this.getThread(threadID);
-    } 
+    }
+
+    /**
+     * Get the name from the given User ID
+     * @param  {String} userID   The User ID to look for
+     * @return {String}          The User full-name
+     */
+    getName(userID) {
+        if (userID === this.currentUserID) return 'Me';
+        return this.friends.filter(f => f.userID === userID)[0].fullName;
+    }
 
     /**
      * Listener of incoming messages, that will add them to
@@ -122,7 +132,7 @@ module.exports = class Facebook {
                 .addMessage(message, message.threadID)
                 .then(thread => {
                     var threadName = FacebookVorpal.getThreadName(thread),
-                        senderName = message.senderName,
+                        senderName = this.getName(message.senderID),
                         body = message.body;
 
                     if (body.length > 40) {
@@ -131,7 +141,7 @@ module.exports = class Facebook {
 
                     this.vorpal.ui.redraw(
                             '\n  '+
-                            chalk.bold.yellow('[NEW MESSAGE] ') +
+                            chalk.bold.yellow('[New Message] ') +
                             '(from: ' + chalk.bold(senderName) +
                             ', @: ' + threadName +
                             ') ' + body

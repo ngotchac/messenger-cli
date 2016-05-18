@@ -1,8 +1,10 @@
 var os = require('os'),
     fs = require('fs'),
+    pictureTube = require('picture-tube'),
+    convert = require('netpbm').convert,
+    request = require('request'),
     crypto = require('crypto'),
     mkdirp = require('mkdirp'),
-    imageToAscii = require('image-to-ascii'),
     path = require('path');
 
 module.exports = class Utils {
@@ -71,6 +73,61 @@ module.exports = class Utils {
     }
 
     /**
+     * Old file to ASCII function using image-to-ascii.
+     * It is not working very well, but supports all
+     * file types...
+     *
+     * @param  {String} filepath   The file to display
+     * @return {Promise}
+     */
+    static fileToAscii_OLD(filepath) {
+        var imageToAscii = require('image-to-ascii');
+
+        var cols = process.stdout.columns - 8,
+            rows = process.stdout.rows - 10;
+
+        return new Promise((resolve, reject) => {
+            imageToAscii(filepath, {
+                size_options: {
+                    px_size: {
+                        width: 1,
+                        height: 0.5
+                    },
+                    screen_size: {
+                        width: cols,
+                        height: rows / 2
+                    }
+                }
+            }, (err, ascii) => {
+                // If error, resolve with part of it...
+                if (err) resolve(`Couldn't load image @ ${filepath} (${err.toString().slice(0, 50)})`);
+
+                resolve(ascii);
+            });
+        });
+    }
+    
+    /**
+     * Convert file to a printable string, but only works
+     * with PNG.
+     *
+     * @param  {String} filepath   The file to display
+     * @return {Promise}
+     */
+    static fileToAscii(filepath) {
+        return new Promise((resolve, reject) => {
+            var tube = pictureTube(),
+                data = '';
+
+            fs.createReadStream(filepath)
+                .pipe(tube)
+                .on('data', d => data += d.toString())
+                .on('end', () => resolve(data))
+                .on('error', e => reject(e));
+        });
+    }
+
+    /**
      * Return a Promise resolved with the ASCII art of
      * the given URL of an image.
      * The ASCII Art is cached in the cached data folder
@@ -83,49 +140,92 @@ module.exports = class Utils {
         if (!url) return Promise.resolve('');
 
         const hash = crypto.createHash('sha256');
-        var cols = process.stdout.columns - 8,
-            rows = process.stdout.rows - 10;
 
         // Generate a hash from the given URL
-        var h = hash.update(url).digest('hex') + '.ascii',
+        var h = hash.update(url).digest('hex'),
             cacheFolder = Utils.getCacheFolder();
 
         // The path of the cached file
-        var cachedFile = path.join(cacheFolder, '/', h);
+        var cachedFileBase = path.join(cacheFolder, '/', h);
+
+        var cachedFilePNG = cachedFileBase + '.png';
 
         return new Promise((resolve, reject) => {
             // Try to read the cached file
-            fs.readFile(cachedFile, (err, ascii) => {
-                if (!err) return resolve(ascii.toString());
+            fs.readFile(cachedFilePNG, (err) => {
+                // If there is an error, reject
                 if (err && err.code !== 'ENOENT') return reject(err);
 
-                // Convert image to ASCII
-                imageToAscii(url, {
-                    // size: {
-                    //     height: '70%'
-                    // },
-                    size_options: {
-                        px_size: {
-                            width: 1,
-                            height: 0.5
-                        },
-                        screen_size: {
-                            width: cols,
-                            height: rows / 2
-                        }
-                    }
-                }, (err, ascii) => {
-                    // If error, resolve with part of it...
-                    if (err) resolve(`Couldn't load image @ ${url} (${err.toString().slice(0, 50)})`);
+                // Create empty Promise
+                var promise = Promise.resolve();
 
-                    fs.writeFile(cachedFile, ascii, (err) => {
-                        if (err) return reject(err);
+                // If it doesn't exist, download the file
+                if (err && err.code === 'ENOENT') {
+                    promise = Utils
+                        .downloadFile(url, cachedFileBase)
+                        .then(f => Utils.convertToPng(f, cachedFileBase));
+                }
 
-                        // Resolve with the ASCII Art
-                        resolve(ascii);
-                    });
+                promise
+                    // Convert it to ASCII code
+                    .then(() => Utils.fileToAscii(cachedFilePNG))
+                    .then(ascii => resolve(ascii))
+                    .catch(e => reject(e));
+            });
+        });
+    }
+
+    /**
+     * Convert the given file to png, with the given base
+     * path.
+     *
+     * @param  {String} filepath       The path of the input file
+     * @param  {String} filepathBase   The base of the output file
+     * @return {Promise}
+     */
+    static convertToPng(filepath, filepathBase) {
+        // If it is already a PNG, then don't convert it
+        if (filepath.split('.').pop() === 'png') {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            // Convert the file to PNG
+            convert(filepath, filepathBase + '.png', { typeOut: 'png' }, err => {
+                if (err) return reject(err);
+
+                // Remove to first file
+                fs.unlink(filepath, err => {
+                    if (err) return reject(err);
+                    resolve();
                 });
             });
+        });
+    }
+
+    /**
+     * Download a file from the given URL
+     *
+     * @param  {String} url            The URL where the file lives
+     * @param  {String} filepathBase   The local path for the download
+     * @return {Promise}
+     */
+    static downloadFile(url, filepathBase) {
+        var filepath;
+
+        return new Promise((resolve, reject) => {
+            // Download the file
+            request(url)
+                .on('response', res => {
+                    // Save it to its real extension
+                    var ext = res.headers['content-type'].split('/')[1];
+                    filepath = filepathBase + '.' + ext;
+                    // Write it to filepath
+                    res
+                        .pipe(fs.createWriteStream(filepath));
+                })
+                .on('end', () => resolve(filepath))
+                .on('error', e => reject(e));
         });
     }
 }

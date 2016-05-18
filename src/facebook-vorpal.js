@@ -120,10 +120,9 @@ module.exports = class FacebookVorpal {
         var status = `${sender} (${date})`;
 
         // Nothing has been given, sadly...
+        // Could be a status message...
         if (!body && attachments.length === 0) {
-            return Promise.resolve().then(() => {
-                this.print(`${status} (Unknown message...)\n`);
-            });
+            return Promise.resolve();;
         }
 
         var attP = Promise.resolve();

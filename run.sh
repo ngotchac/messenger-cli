@@ -64,6 +64,13 @@ vorpal
 vorpal
     .command('send', 'Send a message')
     .action(function(args, callback) {
+        // Verify that the user is logged in
+        if (!Facebook.loggedin) {
+            this.log(chalk.bold.red('You must login before continuing.'));
+            this.log('Type', chalk.bold('init'), 'to login.\n');
+            return callback();
+        }
+
         // Bind the log and prompt functions
         FacebookVorpal.prompt = this.prompt.bind(this);
         FacebookVorpal.print = this.log.bind(this);
@@ -83,7 +90,7 @@ vorpal
 
         FacebookVorpal
             .promptThread()
-            .then(thread => { this.log(JSON.stringify(thread.data, null, 4)); })
+            .then(thread => { this.log(JSON.stringify(thread, null, 4)); })
             .then(callback)
             .catch(e => { setTimeout(() => { throw e; }); });
     });

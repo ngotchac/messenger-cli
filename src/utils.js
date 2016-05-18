@@ -79,6 +79,9 @@ module.exports = class Utils {
      * @return {Promise}
      */
     static urlToAscii(url) {
+        // If no URL given, then resolve with empty text
+        if (!url) return Promise.resolve('');
+
         const hash = crypto.createHash('sha256');
         var cols = process.stdout.columns - 8,
             rows = process.stdout.rows - 10;
@@ -91,9 +94,6 @@ module.exports = class Utils {
         var cachedFile = path.join(cacheFolder, '/', h);
 
         return new Promise((resolve, reject) => {
-            // If no URL given, then resolve with empty text
-            if (!url) return resolve('');
-
             // Try to read the cached file
             fs.readFile(cachedFile, (err, ascii) => {
                 if (!err) return resolve(ascii.toString());

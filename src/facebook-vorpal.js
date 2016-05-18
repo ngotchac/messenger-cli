@@ -59,6 +59,8 @@ module.exports = class FacebookVorpal {
      * @return {Promise}
      */
     printMessage(message) {
+        var myID = this.Facebook.currentUserID.toString();
+
         var date = message.timestampDatetime,
             sender = message.senderName,
             body = message.body || '',
@@ -66,6 +68,12 @@ module.exports = class FacebookVorpal {
 
         date = chalk.green(date);
         sender = chalk.bold(sender);
+
+        var senderID = /^fbid:(\d+)$/.exec(message.senderID)[1];
+
+        if (senderID === myID) {
+            sender = chalk.blue(sender);
+        }
 
         var status = `${sender} (${date})`;
 

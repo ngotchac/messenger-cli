@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 var vorpal = require('vorpal')(),
     chalk = require('chalk');
 
@@ -82,6 +80,14 @@ vorpal
     });
 
 vorpal
+    .command('clean', 'Clean the current window')
+    .alias('clear')
+    .action(function(args, cb) {
+        process.stdout.write('\u001B[2J\u001B[0;0f');
+        cb();
+    });
+
+vorpal
     .command('messages', 'Debug messages')
     .action(function(args, callback) {
         // Bind the log and prompt functions
@@ -98,6 +104,15 @@ vorpal
 vorpal
     .delimiter('fb $>')
     .show();
+
+/**
+ * Bind CTRL + L to clear the window terminal
+ */
+process.stdin.on('keypress', function(letter, key) {
+    if (key.ctrl === true && ['l', 'L'].indexOf(key.name) > -1) {
+        vorpal.exec('clean');
+    }
+});
 
 process.on('uncaughtException', function(err) {
     // handle the error safely

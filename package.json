@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Facebook Messenger chat from the Terminal",
   "scripts": {
-    "start": "./run.sh"
+    "start": "bin/messenger"
   },
   "bin": {
     "messenger": "run.sh"

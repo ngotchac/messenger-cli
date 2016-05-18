@@ -6,6 +6,9 @@
   "scripts": {
     "start": "node index.js"
   },
+  "bin": {
+    "messenger": "index.js"
+  },
   "keywords": [
     "facebook",
     "messenger",

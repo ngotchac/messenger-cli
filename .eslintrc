@@ -1,0 +1,15 @@
+{
+  "parser": "babel-eslint",
+  "plugins": [
+    "babel"
+  ],
+  "ecmaFeatures": {
+    "modules": true
+  },
+  "env": {
+    "es6": true
+  },
+  "rules": {
+    "quotes": [ 1, "single" ]
+  }
+}

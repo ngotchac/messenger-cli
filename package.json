@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "description": "Facebook Messenger chat from the Terminal",
   "scripts": {
-    "start": "bin/messenger"
+    "start": "node index.js"
   },
   "bin": {
-    "messenger": "run.sh"
+    "messenger": "bin/messenger"
   },
   "keywords": [
     "facebook",

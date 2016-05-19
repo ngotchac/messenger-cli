@@ -6,8 +6,7 @@ var fb = require('facebook-chat-api'),
     fs = require('fs'),
     path = require('path'),
     chalk = require('chalk'),
-    inquirer = require('inquirer'),
-    imageToAscii = require('image-to-ascii');
+    inquirer = require('inquirer');
 
 var Utils = require('./utils'),
     FacebookVorpal = require('./facebook-vorpal');

@@ -218,7 +218,7 @@ module.exports = class FacebookVorpal {
 
         // Construct the choices
         var choices = threads
-                .map(thread => {
+                .map((thread, idx) => {
                     // Get the thread's name
                     var threadName = FacebookVorpal.getThreadName(thread);
 
@@ -235,7 +235,7 @@ module.exports = class FacebookVorpal {
 
                     return {
                         value: thread.threadID,
-                        name: name,
+                        name: `${idx+1}. ${name}`,
                         short: threadName
                     };
                 });

@@ -97,11 +97,17 @@ module.exports = class Facebook {
             // Update the snippet
             thread.snippet = thread.data[thread.data.length - 1].body || '';
 
+            // Update the thread timestamp
+            thread.timestamp = thread.data[thread.data.length - 1].timestamp;
+
             // Update the threads
-            this.threads = this.threads.map(t => {
-                if (t.threadID === threadID) t = thread;
-                return t;
-            });
+            this.threads = this.threads
+                .map(t => {
+                    if (t.threadID === threadID) t = thread;
+                    return t;
+                })
+                // Sort the thread by timestamp
+                .sort((t1, t2) => t2.timestamp - t1.timestamp);
 
             return Promise.resolve(thread);
         }
@@ -196,7 +202,7 @@ module.exports = class Facebook {
 
         return new Promise((resolve, reject) => {
             // Get the Thread History
-            api.getThreadHistory(threadID, 0, max, null, (err, data) => {
+            api.getThreadHistory(threadID, 10, max, null, (err, data) => {
                 if (err) return reject(err);
 
                 // Save the data in the thread

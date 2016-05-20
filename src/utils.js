@@ -5,6 +5,8 @@ var os = require('os'),
     request = require('request'),
     crypto = require('crypto'),
     mkdirp = require('mkdirp'),
+    uid = require('uid-safe'),
+    spawn = require('child_process').spawn,
     path = require('path');
 
 module.exports = class Utils {
@@ -233,4 +235,38 @@ module.exports = class Utils {
                 .on('error', e => reject(e));
         });
     }
+
+    /**
+     * Spawn a new VIM process for the user to input some
+     * text.
+     *
+     * @return {Promise} Resolves with the user input
+     */
+    static vimInput() {
+        var filename = uid.sync(18) + '.tmp';
+        var filepath = path.join(os.tmpdir(), filename);
+
+        return new Promise((resolve, reject) => {
+            // Spawn a new VIM process
+            var vim = spawn('vim', [ filepath ], { stdio: 'inherit' });
+
+            vim.on('exit', code => {
+                // Get the file content
+                fs.readFile(filepath, (err, data) => {
+                    if (err) return reject(err);
+
+                    var content = data.toString();
+
+                    // Remove the temporary file
+                    fs.unlink(filepath, err => {
+                        if (err) return reject(err);
+
+                        // Resolve with the content
+                        return resolve(content);
+                    });
+                });
+            });
+        });
+    }
+
 }

@@ -1,8 +1,11 @@
 var vorpal = require('vorpal')(),
+    path = require('path'),
     chalk = require('chalk');
 
 var facebook = require('./src/facebook'),
     facebookVorpal = require('./src/facebook-vorpal');
+
+var Utils = require('./src/utils');
 
 var Facebook = new facebook(vorpal);
 var FacebookVorpal = new facebookVorpal(Facebook);
@@ -87,6 +90,22 @@ vorpal
     .action(function(args, cb) {
         process.stdout.write('\u001B[2J\u001B[0;0f');
         cb();
+    });
+
+vorpal
+    .command('vim', 'Open VIM')
+    .alias('v')
+    .action(function(args, cb) {
+        Utils
+            .vimInput()
+            .then(data => {
+                this.log(data);
+                cb();
+            })
+            .catch(e => {
+                this.log(e);
+                cb();
+            });
     });
 
 vorpal

@@ -13,24 +13,10 @@ var FacebookVorpal = new facebookVorpal(Facebook);
 vorpal
     .command('init', 'Initialize Facebook (login, etc...)')
     .action(function(args, callback) {
-        // const frames = ['-', '\\', '|', '/'];
-        // let i = 0;
-
-        // var a = setInterval(() => {
-        //     const frame = frames[i = ++i % frames.length];
-
-        //     vorpal.ui.redraw(
-        //         `    ${frame} Logging into Facebook ${frame}`
-        //     );
-        // }, 80);
+        
 
         Facebook
             .init()
-            .then(() => {
-                // clearInterval(a);
-                // vorpal.ui.redraw.clear();
-                // vorpal.ui.redraw.done();
-            })
             .then(callback)
             .catch(e => { setTimeout(() => { throw e; callback(); }); });
     });

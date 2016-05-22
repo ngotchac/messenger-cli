@@ -12,6 +12,38 @@ var os = require('os'),
 module.exports = class Utils {
 
     /**
+     * Returns an Object with a function to start displaying
+     * the loading wheel (with custom message), and to stop.
+     *
+     * @param  {Object} vorpal    The Vorpal Instance
+     * @param  {String} message   Message to show during loading
+     * @return {Object}           The start and stop functions
+     */
+    static loading(vorpal, message) {
+        const frames = ['-', '\\', '|', '/'];
+        var intervalId;
+
+        return {
+            start: () => {
+                let i = 0;
+
+                intervalId = setInterval(() => {
+                    const frame = frames[i = ++i % frames.length];
+
+                    vorpal.ui.redraw(
+                        `    ${frame} ${message} ${frame}`
+                    );
+                }, 80);
+            },
+            stop: () => {
+                clearInterval(intervalId);
+                vorpal.ui.redraw.clear();
+                vorpal.ui.redraw.done();
+            }
+        }
+    }
+
+    /**
      * Returns the data folder for this project
      *
      * @return {String}

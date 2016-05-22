@@ -37,13 +37,31 @@ module.exports = class Facebook {
      * @return {Promise}
      */
     init() {
+        var loading = Utils.loading(this.vorpal, 'Initialization');
+
         return this
             .getState()
             .then(state => {
                 // If no state available, prompt the user to login
-                if (!state) return this.promptLogin();
+                if (!state) {
+                    return this.promptLogin()
+                        .then(answers => {
+                            var username = answers.login,
+                                password = answers.password;
+
+                            // Start the loading
+                            loading.start();
+
+                            // Try to login with the given credentials
+                            return this.loginFromCredentials(username, password);
+                        });
+                }
 
                 // Else, login from the stored state
+
+                // Start the loading
+                loading.start();
+
                 return this.loginFromState(state);
             })
             .then(() => {
@@ -61,7 +79,8 @@ module.exports = class Facebook {
                 this.attachIncomingMessages();
                 this.loggedin = true;
             })
-            .then(() => this.linkThreadsToFriends());
+            .then(() => this.linkThreadsToFriends())
+            .then(() => loading.stop());
     }
 
     /**
@@ -138,24 +157,22 @@ module.exports = class Facebook {
         this.listener = this.api.listen((err, message) => {
             if(err) return console.error(err);
 
-            this
-                .addMessage(message, message.threadID)
-                .then(thread => {
-                    var threadName = FacebookVorpal.getThreadName(thread),
-                        senderName = this.getName(message.senderID),
-                        body = message.body;
+            var senderName = this.getName(message.senderID),
+                messageStr;
 
-                    if (body.length > 40) {
-                        body = body.slice(0, 37) + '...';
-                    }
+            message.senderName = senderName;
+
+            FacebookVorpal
+                .messageToString(message)
+                .then(d => messageStr = d)
+                .then(() => this.addMessage(message, message.threadID))
+                .then(thread => {
+                    var threadName = FacebookVorpal.getThreadName(thread);
 
                     this.vorpal.ui.redraw(
-                            '\n  '+
-                            chalk.bold.yellow('[New Message] ') +
-                            '(from: ' + chalk.bold(senderName) +
-                            ', @: ' + threadName +
-                            ') ' + body
-                        );
+`${chalk.bold.yellow('[New Message]')} @ ${threadName}
+ ${messageStr}`
+                    );
                     this.vorpal.ui.redraw.done();
                 });
         });
@@ -328,14 +345,7 @@ module.exports = class Facebook {
 
         // Prompt the questions to the user
         return inquirer
-            .prompt(questions)
-            .then(answers => {
-                var username = answers.login,
-                    password = answers.password;
-
-                // Try to login with the given credentials
-                return this.loginFromCredentials(username, password);
-            });
+            .prompt(questions);
     }
 
     /**

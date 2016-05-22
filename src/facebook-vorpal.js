@@ -26,7 +26,7 @@ module.exports = class FacebookVorpal {
      * @param  {Object} att   The Facebook Thread attachment
      * @return {Promise}
      */
-    getAttachmentText(att) {
+    static getAttachmentText(att) {
         var url = att.previewUrl || att.url || att.image,
             description = att.description || att.facebookUrl;
 
@@ -90,23 +90,12 @@ module.exports = class FacebookVorpal {
             });
     }
 
-    /**
-     * Print the given message from a Facebook Thread
-     *
-     * @param  {Object} message  The message Object:
-     *                               senderName: String,
-     *                               attachments: [Object],
-     *                               body: String,
-     *                               timestampDatetime: String
-     * @return {Promise}
-     */
-    printMessage(message) {
-        var myID = this.Facebook.currentUserID.toString();
-
+    static messageToString(message, fromMe) {
         var date = message.timestampDatetime,
             sender = message.senderName,
             body = message.body || '',
-            attachments = message.attachments;
+            attachments = message.attachments,
+            toPrint = '';
 
         if (!date) {
             date = (new Date(parseInt(message.timestamp))).toLocaleTimeString();
@@ -114,14 +103,10 @@ module.exports = class FacebookVorpal {
 
         date = chalk.green(date);
         sender = chalk.bold(sender);
+        
+        if (fromMe) sender = chalk.blue.bold('Me');
 
-        var senderID = /^(fbid:)?(\d+)$/.exec(message.senderID)[2];
-
-        if (senderID === myID) {
-            sender = chalk.blue.bold('Me');
-        }
-
-        var status = `${sender} (${date})`;
+        var status = `${sender} (${date})\n`;
 
         // Nothing has been given, sadly...
         // Could be a status message...
@@ -134,13 +119,14 @@ module.exports = class FacebookVorpal {
         // If only attachments, print them
         if (attachments.length > 0) {
             // Get all the attachments texts
-            attP = Promise.all(attachments.map(a => this.getAttachmentText(a)));
+            attP = Promise
+                .all(attachments.map(a => FacebookVorpal.getAttachmentText(a)));
         }
 
         return attP
             .then(asciiAttachments => {
                 // Print the status
-                this.print(status);
+                toPrint += status;
 
                 if (body) {
                     // Split a long body, and add 4 spaces at the
@@ -152,14 +138,37 @@ module.exports = class FacebookVorpal {
 
 
                     // Print the message body
-                    this.print(`  > ${body}\n`);
+                    toPrint += `  > ${body}\n`;
                 }
 
                 if (asciiAttachments) {
                     // Print the attachments
-                    asciiAttachments.forEach(d => this.print(d)); 
+                    asciiAttachments.forEach(d => toPrint += `${d}\n`); 
                 }
+
+                return toPrint;
             });
+    }
+
+    /**
+     * Print the given message from a Facebook Thread
+     *
+     * @param  {Object} message  The message Object:
+     *                               senderName: String,
+     *                               attachments: [Object],
+     *                               body: String,
+     *                               timestampDatetime: String
+     * @return {Promise}
+     */
+    printMessage(message) {
+        var myID = this.Facebook.currentUserID.toString();
+        var senderID = /^(fbid:)?(\d+)$/.exec(message.senderID)[2];
+
+        var fromMe = (myID === senderID);
+        
+        return FacebookVorpal
+            .messageToString(message, fromMe)
+            .then(toPrint => this.print(toPrint));
     }
 
     /**

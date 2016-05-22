@@ -7,6 +7,7 @@ var os = require('os'),
     mkdirp = require('mkdirp'),
     uid = require('uid-safe'),
     spawn = require('child_process').spawn,
+    log = require('bole')('UTILS'),
     path = require('path');
 
 module.exports = class Utils {
@@ -179,7 +180,7 @@ module.exports = class Utils {
                     .catch(e => {
                         // If there is an error, don't print anything,
                         // but log
-                        console.log({ error: e, url: url });
+                        log.error({ error: e, url: url });
                         resolve('');
                     });
             });

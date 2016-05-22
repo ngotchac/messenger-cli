@@ -123,7 +123,8 @@ module.exports = class Facebook {
      */
     getName(userID) {
         if (userID === this.currentUserID) return 'Me';
-        return this.friends.filter(f => f.userID === userID)[0].fullName;
+        var friend = this.friends.filter(f => f.userID === userID)[0];
+        return friend ? friend.fullName : 'Unknown user';
     }
 
     /**

@@ -32,7 +32,7 @@ vorpal
                 // vorpal.ui.redraw.done();
             })
             .then(callback)
-            .catch(e => { setTimeout(() => { throw e; }); });
+            .catch(e => { setTimeout(() => { throw e; callback(); }); });
     });
 
 vorpal
@@ -60,7 +60,7 @@ vorpal
             .promptThread(search)
             .then(thread => FacebookVorpal.printThread(thread, N))
             .then(callback)
-            .catch(e => { setTimeout(() => { throw e; }); });
+            .catch(e => { setTimeout(() => { throw e; callback(); }); });
     });
 
 
@@ -81,7 +81,7 @@ vorpal
         FacebookVorpal
             .promptMessage()
             .then(callback)
-            .catch(e => { setTimeout(() => { throw e; }); });
+            .catch(e => { setTimeout(() => { throw e; callback(); }); });
     });
 
 vorpal
@@ -119,7 +119,7 @@ vorpal
             .promptThread()
             .then(thread => { this.log(JSON.stringify(thread, null, 4)); })
             .then(callback)
-            .catch(e => { setTimeout(() => { throw e; }); });
+            .catch(e => { setTimeout(() => { throw e; callback(); }); });
     });
 
 vorpal

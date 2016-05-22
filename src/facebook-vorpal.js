@@ -109,7 +109,7 @@ module.exports = class FacebookVorpal {
             attachments = message.attachments;
 
         if (!date) {
-            date = (new Date(message.timestamp)).toLocaleTimeString();
+            date = (new Date(parseInt(message.timestamp))).toLocaleTimeString();
         }
 
         date = chalk.green(date);

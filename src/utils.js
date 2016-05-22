@@ -1,7 +1,7 @@
 var os = require('os'),
     fs = require('fs'),
     pictureTube = require('picture-tube'),
-    convert = require('netpbm').convert,
+    lwip = require('lwip'),
     request = require('request'),
     crypto = require('crypto'),
     mkdirp = require('mkdirp'),
@@ -73,41 +73,6 @@ module.exports = class Utils {
 
         return lines;
     }
-
-    /**
-     * Old file to ASCII function using image-to-ascii.
-     * It is not working very well, but supports all
-     * file types...
-     *
-     * @param  {String} filepath   The file to display
-     * @return {Promise}
-     */
-    static fileToAscii_OLD(filepath) {
-        // var imageToAscii = require('image-to-ascii');
-
-        var cols = process.stdout.columns - 8,
-            rows = process.stdout.rows - 10;
-
-        return new Promise((resolve, reject) => {
-            imageToAscii(filepath, {
-                size_options: {
-                    px_size: {
-                        width: 1,
-                        height: 0.5
-                    },
-                    screen_size: {
-                        width: cols,
-                        height: rows / 2
-                    }
-                }
-            }, (err, ascii) => {
-                // If error, resolve with part of it...
-                if (err) resolve(`Couldn't load image @ ${filepath} (${err.toString().slice(0, 50)})`);
-
-                resolve(ascii);
-            });
-        });
-    }
     
     /**
      * Convert file to a printable string, but only works
@@ -172,7 +137,12 @@ module.exports = class Utils {
                     // Convert it to ASCII code
                     .then(() => Utils.fileToAscii(cachedFilePNG))
                     .then(ascii => resolve(ascii))
-                    .catch(e => reject(e));
+                    .catch(e => {
+                        // If there is an error, don't print anything,
+                        // but log
+                        console.log({ error: e, url: url });
+                        resolve('');
+                    });
             });
         });
     }
@@ -192,12 +162,10 @@ module.exports = class Utils {
         }
 
         return new Promise((resolve, reject) => {
-            // Convert the file to PNG (max width of 300px)
-            convert(
-                filepath,
-                filepathBase + '.png',
-                { typeOut: 'png', width: 300 },
-                err => {
+            lwip.open(filepath, function(err, image) {
+                if (err) return reject(err);
+
+                image.writeFile(filepathBase + '.png', 'png', err => {
                     if (err) return reject(err);
 
                     // Remove to first file
@@ -205,8 +173,8 @@ module.exports = class Utils {
                         if (err) return reject(err);
                         resolve();
                     });
-                }
-            );
+                });
+            });
         });
     }
 
@@ -249,6 +217,8 @@ module.exports = class Utils {
         return new Promise((resolve, reject) => {
             // Spawn a new VIM process
             var vim = spawn('vim', [ filepath ], { stdio: 'inherit' });
+
+            vim.on('err', err => reject(err));
 
             vim.on('exit', code => {
                 // Get the file content

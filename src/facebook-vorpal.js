@@ -90,6 +90,13 @@ module.exports = class FacebookVorpal {
             });
     }
 
+    /**
+     * Transform a message into a printable string.
+     *
+     * @param  {Object} message   The Message Object
+     * @param  {Boolean} fromMe   Is the message from me or not
+     * @return {Promise}          Resolves with the string to print
+     */
     static messageToString(message, fromMe) {
         var date = message.timestampDatetime,
             sender = message.senderName,
@@ -164,8 +171,10 @@ module.exports = class FacebookVorpal {
         var myID = this.Facebook.currentUserID.toString();
         var senderID = /^(fbid:)?(\d+)$/.exec(message.senderID)[2];
 
+        // Is the message form me? (same ID)
         var fromMe = (myID === senderID);
         
+        // Transform to string and print
         return FacebookVorpal
             .messageToString(message, fromMe)
             .then(toPrint => this.print(toPrint));

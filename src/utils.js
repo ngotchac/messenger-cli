@@ -113,9 +113,13 @@ module.exports = class Utils {
      * @param  {String} filepath   The file to display
      * @return {Promise}
      */
-    static fileToAscii(filepath) {
+    static fileToAscii(filepath, size) {
         return new Promise((resolve, reject) => {
-            var tube = pictureTube(),
+            var w = size.width;
+
+            var options = (w < 100) ? { cols: w / 5} : {};
+
+            var tube = pictureTube(options),
                 data = '';
 
             fs.createReadStream(filepath)
@@ -151,24 +155,27 @@ module.exports = class Utils {
 
         return new Promise((resolve, reject) => {
             // Try to read the cached file
-            fs.readFile(cachedFilePNG, (err) => {
+            lwip.open(cachedFilePNG, (err, image) => {
                 // If there is an error, reject
                 if (err && err.code !== 'ENOENT') return reject(err);
 
-                // Create empty Promise
-                var promise = Promise.resolve();
-
                 // If it doesn't exist, download the file
                 if (err && err.code === 'ENOENT') {
-                    promise = Utils
+                    var promise = Utils
                         .downloadFile(url, cachedFileBase)
                         .then(f => Utils.convertToPng(f, cachedFileBase));
+                } else {
+                    // Create empty Promise with the image size
+                    var width = image.width(),
+                        height = image.height();
+
+                    var promise = Promise.resolve({ width: width, height: height });
                 }
 
                 promise
                     // Convert it to ASCII code
-                    .then(() => Utils.fileToAscii(cachedFilePNG))
-                    .then(ascii => resolve(ascii))
+                    .then(size => Utils.fileToAscii(cachedFilePNG, size))
+                    .then(ascii => resolve(`${url}\n\n${ascii}`))
                     .catch(e => {
                         // If there is an error, don't print anything,
                         // but log
@@ -188,14 +195,17 @@ module.exports = class Utils {
      * @return {Promise}
      */
     static convertToPng(filepath, filepathBase) {
-        // If it is already a PNG, then don't convert it
-        if (filepath.split('.').pop() === 'png') {
-            return Promise.resolve();
-        }
-
         return new Promise((resolve, reject) => {
             lwip.open(filepath, function(err, image) {
                 if (err) return reject(err);
+
+                var width = image.width(),
+                    height = image.height();
+
+                // If it is already a PNG, then don't convert it
+                if (filepath.split('.').pop() === 'png') {
+                    return Promise.resolve({ width: width, height: height });
+                }
 
                 image.writeFile(filepathBase + '.png', 'png', err => {
                     if (err) return reject(err);
@@ -203,7 +213,7 @@ module.exports = class Utils {
                     // Remove to first file
                     fs.unlink(filepath, err => {
                         if (err) return reject(err);
-                        resolve();
+                        resolve({ width: width, height: height });
                     });
                 });
             });

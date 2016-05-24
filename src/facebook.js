@@ -224,20 +224,26 @@ module.exports = class Facebook {
                 if (err) return reject(err);
 
                 // Save the data in the thread
-                self.threads = self.threads.map(t => {
-                    if (t.threadID === threadID) {
-                        // Get the thread
-                        thread = t;
+                self.threads = self.threads
+                    .map(t => {
+                        if (t.threadID === threadID) {
+                            // Get the thread
+                            thread = t;
 
-                        // Store the data
-                        t.data = data;
+                            // Store the data
+                            t.data = data;
 
-                        // Update the snippet
-                        t.snippet = t.data[t.data.length - 1].body || '';
-                    }
+                            // Update the snippet
+                            t.snippet = t.data[t.data.length - 1].body || '';
 
-                    return t;
-                });
+                            // Update the thread timestamp
+                            t.timestamp = t.data[t.data.length - 1].timestamp;
+                        }
+
+                        return t;
+                    })
+                    // Sort the thread by timestamp
+                    .sort((t1, t2) => t2.timestamp - t1.timestamp);
 
                 resolve(thread);
             });

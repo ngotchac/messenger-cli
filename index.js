@@ -1,5 +1,6 @@
 var vorpal = require('vorpal')(),
     path = require('path'),
+    bole = require('bole'),
     chalk = require('chalk');
 
 var facebook = require('./src/facebook'),
@@ -9,6 +10,11 @@ var Utils = require('./src/utils');
 
 var Facebook = new facebook(vorpal);
 var FacebookVorpal = new facebookVorpal(Facebook);
+
+bole.output({
+    level: 'info',
+    stream: process.stdout
+});
 
 vorpal
     .command('init', 'Initialize Facebook (login, etc...)')

@@ -268,7 +268,10 @@ module.exports = class Utils {
                 fs.readFile(filepath, (err, data) => {
                     if (err) return reject(err);
 
-                    var content = data.toString();
+                    var content = data
+                        .toString()
+                        // Delete the newlines at the end
+                        .replace(/\n+$/gi, '');
 
                     // Remove the temporary file
                     fs.unlink(filepath, err => {

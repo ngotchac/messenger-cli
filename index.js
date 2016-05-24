@@ -58,6 +58,7 @@ vorpal
 
 vorpal
     .command('send', 'Send a message')
+    .alias('s')
     .action(function(args, callback) {
         // Verify that the user is logged in
         if (!Facebook.loggedin) {

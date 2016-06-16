@@ -26,7 +26,6 @@
     "mkdirp": "^0.5.1",
     "picture-tube": "^1.0.0",
     "request": "^2.72.0",
-    "uid-safe": "^2.1.1",
     "vorpal": "^1.10.10"
   },
   "devDependencies": {

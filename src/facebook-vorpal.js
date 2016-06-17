@@ -1,4 +1,5 @@
-var chalk = require('chalk');
+var chalk = require('chalk'),
+    Gauge = require('gauge');
 
 var Utils = require('./utils');
 
@@ -71,22 +72,11 @@ module.exports = class FacebookVorpal {
         }
         
         return promise
-            .then(t => {
-                thread = t;
-                return this
-                    .prompt({
-                        message: chalk.bold('  Enter a message: '),
-                        name: 'message',
-                        type: 'input',
-                        validate: function(s) {
-                            if (s.length < 1) return 'Enter a valid message';
-                            return true;
-                        }
-                    })
-                    .then(a => a.message)
-            })
-            .then(m => {
-                return this.Facebook.sendMessage(m, thread.threadID);
+            .then(thread => {
+                return Utils
+                    .vimInput()
+                    .then(m => this.Facebook.sendMessage(m, thread.threadID));
+                    
             });
     }
 
@@ -94,15 +84,19 @@ module.exports = class FacebookVorpal {
      * Transform a message into a printable string.
      *
      * @param  {Object} message   The Message Object
-     * @param  {Boolean} fromMe   Is the message from me or not
+     * @param  {String} myID      The logged user ID (to match if
+     *                            from me or not)
      * @return {Promise}          Resolves with the string to print
      */
-    static messageToString(message, fromMe) {
+    static messageToString(message, myID) {
+        var senderID = /^(fbid:)?(\d+)$/.exec(message.senderID)[2];
+
         var date = message.timestampDatetime,
             sender = message.senderName,
             body = message.body || '',
             attachments = message.attachments,
-            toPrint = '';
+            toPrint = '',
+            fromMe = (myID === senderID);
 
         if (!date) {
             date = (new Date(parseInt(message.timestamp))).toLocaleTimeString();
@@ -127,7 +121,9 @@ module.exports = class FacebookVorpal {
         if (attachments.length > 0) {
             // Get all the attachments texts
             attP = Promise
-                .all(attachments.map(a => FacebookVorpal.getAttachmentText(a)));
+                .all(attachments
+                    .map(a => FacebookVorpal.getAttachmentText(a))
+                );
         }
 
         return attP
@@ -158,51 +154,43 @@ module.exports = class FacebookVorpal {
     }
 
     /**
-     * Print the given message from a Facebook Thread
-     *
-     * @param  {Object} message  The message Object:
-     *                               senderName: String,
-     *                               attachments: [Object],
-     *                               body: String,
-     *                               timestampDatetime: String
-     * @return {Promise}
-     */
-    printMessage(message) {
-        var myID = this.Facebook.currentUserID.toString();
-        var senderID = /^(fbid:)?(\d+)$/.exec(message.senderID)[2];
-
-        // Is the message form me? (same ID)
-        var fromMe = (myID === senderID);
-        
-        // Transform to string and print
-        return FacebookVorpal
-            .messageToString(message, fromMe)
-            .then(toPrint => this.print(toPrint));
-    }
-
-    /**
      * Print the given thread
      * @param  {Object} thread   The thread to print
      * @return {Promise}
      */
     printThread(thread, N) {
-        var pI;
+        var myID = this.Facebook.currentUserID.toString();
+        var promise = Promise.resolve(thread);
+        var gauge = new Gauge();
 
         // If no messages, load them
         if (!thread.data || (N && thread.data.length < N)) {
-            pI = this.Facebook.getThread(thread.threadID, N);
-        } else {
-            // Create an empty Promise
-            pI = Promise.resolve(thread);
+            promise = this.Facebook.getThread(thread.threadID, N);
         }
 
-        return pI.then(t => {
-            var p = Promise.resolve();
+        return promise.then(t => {
+            var p = Promise.resolve([]),
+                N = t.data.length;
 
             // Construct the promises in the right order
-            t.data.forEach(m => p = p.then(() => this.printMessage(m)));
+            t.data.forEach(m => {
+                p = p
+                    .then(messages => {
+                        return FacebookVorpal
+                            .messageToString(m, myID)
+                            .then(str => {
+                                messages.push(str);
+                                gauge.show('Fetching messages', messages.length / N);
+                                gauge.pulse(`${messages.length}/${N}`);
+                                return messages;
+                            });
+                    });
+            });
 
-            return p;
+            return p.then(messages => {
+                gauge.hide();
+                messages.forEach(m => this.print(m));
+            });
         });
     }
 

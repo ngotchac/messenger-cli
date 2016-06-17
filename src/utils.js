@@ -8,7 +8,10 @@ var os = require('os'),
     uid = require('uid-safe'),
     spawn = require('child_process').spawn,
     log = require('bole')('UTILS'),
-    path = require('path');
+    path = require('path'),
+    Ora = require('ora');
+
+var spinner = new Ora();
 
 module.exports = class Utils {
 
@@ -21,7 +24,6 @@ module.exports = class Utils {
      * @return {Object}           The start and stop functions
      */
     static loading(vorpal, message) {
-        const frames = ['-', '\\', '|', '/'];
         var intervalId;
 
         return {
@@ -29,10 +31,10 @@ module.exports = class Utils {
                 let i = 0;
 
                 intervalId = setInterval(() => {
-                    const frame = frames[i = ++i % frames.length];
+                    const frame = spinner.frame();
 
                     vorpal.ui.redraw(
-                        `    ${frame} ${message} ${frame}`
+                        `  ${frame} ${message} ${frame}`
                     );
                 }, 80);
             },
@@ -205,7 +207,7 @@ module.exports = class Utils {
 
                 // If it is already a PNG, then don't convert it
                 if (filepath.split('.').pop() === 'png') {
-                    return Promise.resolve({ width: width, height: height });
+                    return resolve({ width: width, height: height });
                 }
 
                 image.writeFile(filepathBase + '.png', 'png', err => {
@@ -242,7 +244,9 @@ module.exports = class Utils {
                     res
                         .pipe(fs.createWriteStream(filepath));
                 })
-                .on('end', () => resolve(filepath))
+                .on('end', () => {
+                    return resolve(filepath);
+                })
                 .on('error', e => reject(e));
         });
     }
